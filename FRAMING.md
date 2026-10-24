@@ -1,22 +1,16 @@
-# Framing: Rawaj Pay mule detection
-
-<!-- Write a few sentences under each heading about Rawaj Pay's mule detection.
-     Keep the four headings exactly as they are. Text inside these comments does not count.
-     The grader checks only that each heading has some text under it; your Track Mentor reads it. -->
 
 ## Decision
 
-<!-- What decision changes because of the model? Who acts on it, and how many cases a day
-     can they handle? What does each kind of error cost? -->
+Rawaj Pay should use risk scores to prioritize transfers for human review, not treat a score as proof of fraud. The threshold should reflect the review team's capacity and the relative cost of false positives and false negatives.
 
 ## Metric
 
-<!-- Which metric matches that decision, and at what threshold? Why not accuracy? -->
+Precision measures how many flagged transfers are positive. Recall measures how many positive transfers are detected. Precision@K is useful when analysts can review only the K highest-scoring transfers. Expected cost makes the trade-off explicit by weighting false positives and false negatives.
 
 ## Baseline
 
-<!-- What happens today without the model? What must the model beat, on the client's terms? -->
+Start by auditing missing values, duplicate records, malformed timestamps, constant columns, and possible target leakage. Compare a simple transparent baseline with a classical classifier using held-out data. Evaluate precision, recall, Precision@K, and expected cost.
 
 ## Classical ML or LLM
 
-<!-- Classical model, LLM, a rule, or a mix? Argue from the decision table in the session. -->
+A classical tabular model is the more suitable starting point for structured transaction data with labelled outcomes. An LLM might help summarize investigation context, but it should not be the default scoring engine without evidence of improvement. Human review, privacy safeguards, and monitoring remain important.
