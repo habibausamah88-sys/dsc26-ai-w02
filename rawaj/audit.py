@@ -1,5 +1,5 @@
 
-"""Data-quality audit utilities for Rawaj Pay."""
+"""Data audit for Rawaj Pay transfer extracts."""
 from __future__ import annotations
 
 import numpy as np
@@ -40,7 +40,7 @@ def audit(df: pd.DataFrame, *, target: str, id_col: str, time_col: str) -> dict:
     for col in df.columns:
         if col == target:
             continue
-        values = df[col].loc[~masks[col]]
+        values = df.loc[~masks[col], col]
         if values.nunique(dropna=True) <= 1:
             constant_columns.append(col)
 
@@ -75,15 +75,10 @@ def audit(df: pd.DataFrame, *, target: str, id_col: str, time_col: str) -> dict:
                     continue
 
                 feature = labelled[col]
-                missing_feature = masks[col].loc[labelled.index]
-                nonmissing_values = feature.loc[~missing_feature]
+                feature_missing = masks[col].loc[labelled.index]
+                distinct = feature.loc[~feature_missing].nunique(dropna=True)
 
-                distinct = nonmissing_values.nunique(dropna=True)
-                has_missing = bool(missing_feature.any())
-
-                # Ignore columns with only one distinct value, counting
-                # missingness as a possible value.
-                if distinct + int(has_missing) <= 1:
+                if distinct + int(feature_missing.any()) <= 1:
                     continue
 
                 suspect = False
@@ -92,7 +87,7 @@ def audit(df: pd.DataFrame, *, target: str, id_col: str, time_col: str) -> dict:
                     pd.api.types.is_numeric_dtype(feature.dtype)
                     or pd.api.types.is_bool_dtype(feature.dtype)
                 ):
-                    usable = ~missing_feature
+                    usable = ~feature_missing
                     x = feature.loc[usable]
                     y_usable = y_binary[usable.to_numpy()]
 
@@ -106,7 +101,7 @@ def audit(df: pd.DataFrame, *, target: str, id_col: str, time_col: str) -> dict:
 
                 try:
                     missing_auc = roc_auc_score(
-                        y_binary, missing_feature.astype(int).to_numpy()
+                        y_binary, feature_missing.astype(int).to_numpy()
                     )
                     if missing_auc >= 0.98 or missing_auc <= 0.02:
                         suspect = True
@@ -123,7 +118,7 @@ def audit(df: pd.DataFrame, *, target: str, id_col: str, time_col: str) -> dict:
         "duplicate_rows": duplicate_rows,
         "constant_columns": sorted(constant_columns),
         "unlabelled_rows": unlabelled_rows,
-        "positive_rate": float(positive_rate),
+        "positive_rate": positive_rate,
         "bad_timestamps": bad_timestamps,
         "time_range": time_range,
         "leakage_suspects": sorted(leakage_suspects),
